@@ -275,6 +275,21 @@ export function HeroSection() {
           </div>
         </div>
       </div>
+      {/* Bottom Wave */}
+<div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
+  <svg
+    viewBox="0 0 1440 80"
+    className="w-full"
+    style={{ height: "clamp(40px, 6vw, 80px)" }}
+    preserveAspectRatio="none"
+  >
+    <path
+      fill="#9BBAF2"
+      d="M0,48L60,42.7C120,37,240,27,360,29.3C480,32,600,48,720,50.7C840,53,960,43,1080,37.3C1200,32,1320,32,1380,32L1440,32L1440,80L0,80Z"
+    />
+  </svg>
+</div>
+
     </section>
   );
 }
