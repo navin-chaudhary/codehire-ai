@@ -28,48 +28,47 @@ export function HowItWorksSection() {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
   return (
-    <section ref={ref} className="py-20 bg-white">
+    <section ref={ref} className="py-16 sm:py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12 sm:mb-16"
         >
-          <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-3 sm:mb-4">
             How It Works
           </h2>
-          <p className="text-xl text-slate-600">
+          <p className="text-base sm:text-xl text-slate-600 max-w-2xl mx-auto">
             Three simple steps to better code and stronger applications
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
           {steps.map((step, index) => (
             <motion.div
-              key={index}
+              key={step.title}
               initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
+              transition={{ duration: 0.6, delay: index * 0.15 }}
               className="relative"
             >
-              <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-8 hover:shadow-xl transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center mb-6">
-                  <step.icon className="w-8 h-8 text-white" />
+              <div className="h-full bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-6 sm:p-8 hover:shadow-lg transition-shadow border border-slate-100">
+                <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                  <span className="text-xs font-bold text-blue-600 bg-blue-100 w-7 h-7 rounded-full flex items-center justify-center">
+                    {index + 1}
+                  </span>
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center">
+                    <step.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2 sm:mb-3">
                   {step.title}
                 </h3>
-                <p className="text-slate-600">{step.description}</p>
+                <p className="text-slate-600 text-sm sm:text-base">{step.description}</p>
               </div>
               {index < steps.length - 1 && (
-                <>
-                  {/* Desktop line */}
-                  <div className="hidden md:block absolute top-1/2 -right-8 w-8 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-500"></div>
-
-                  {/* Mobile bottom line */}
-                  <div className="md:hidden absolute left-1/2 -bottom-8 w-0.5 h-8 -translate-x-1/2 bg-gradient-to-b from-blue-600 to-cyan-500"></div>
-                </>
+                <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-500" />
               )}
             </motion.div>
           ))}

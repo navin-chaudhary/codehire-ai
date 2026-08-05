@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   FileText, Upload, Sparkles, CheckCircle, AlertTriangle, Target, Briefcase, 
   Award, TrendingUp, X, Download, IndianRupee, LineChart, Users, Zap,
-  FileCheck, BarChart3, BookOpen, Mail, Shield, Eye, Copy, RefreshCw
+  FileCheck, BarChart3, Mail, Shield, Eye, Copy, RefreshCw
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { AuthLoadingScreen } from '../components/AuthLoadingScreen'
 
 // Types
 interface SkillMatch {
@@ -67,12 +68,10 @@ export default function AnalyzeMyResumePage() {
   const { user: contextUser, loading: authLoading } = useAuth()
   const { showToast } = useToast()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [resumeText, setResumeText] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
-  const [isExtracting, setIsExtracting] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'insights' | 'cover-letter'>('overview')
   const [copied, setCopied] = useState(false)
 
@@ -85,94 +84,6 @@ export default function AnalyzeMyResumePage() {
     }
   }, [contextUser, authLoading, router, showToast])
 
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      
-      reader.onload = async (e) => {
-        try {
-          const arrayBuffer = e.target?.result as ArrayBuffer
-          const uint8Array = new Uint8Array(arrayBuffer)
-          
-          let text = ''
-          let inTextBlock = false
-          
-          for (let i = 0; i < uint8Array.length - 1; i++) {
-            if (uint8Array[i] === 66 && uint8Array[i + 1] === 84) { // BT
-              inTextBlock = true
-              i += 1
-              continue
-            }
-            if (uint8Array[i] === 69 && uint8Array[i + 1] === 84) { // ET
-              inTextBlock = false
-              text += ' '
-              i += 1
-              continue
-            }
-            
-            if (inTextBlock) {
-              const char = String.fromCharCode(uint8Array[i])
-              if (char.match(/[\x20-\x7E\n\r\t]/)) {
-                text += char
-              }
-            }
-          }
-          
-          if (text.length < 100) {
-            text = ''
-            for (let i = 0; i < uint8Array.length; i++) {
-              const char = String.fromCharCode(uint8Array[i])
-              if (char.match(/[\x20-\x7E\n\r\t]/)) {
-                text += char
-              }
-            }
-          }
-          
-          text = text
-            .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
-            .replace(/\(/g, '')
-            .replace(/\)/g, '')
-            .replace(/\[/g, '')
-            .replace(/\]/g, '')
-            .replace(/</g, '')
-            .replace(/>/g, '')
-            .replace(/\s+/g, ' ')
-            .replace(/T[jd]/g, ' ')
-            .trim()
-          
-          if (text.length < 100) {
-            reject(new Error('Could not extract enough text from PDF. The PDF might be scanned or image-based. Please try a text-based PDF or copy-paste your resume content.'))
-          } else {
-            resolve(text)
-          }
-        } catch (err) {
-          reject(new Error('Failed to extract text from PDF'))
-        }
-      }
-      
-      reader.onerror = () => reject(new Error('Failed to read file'))
-      reader.readAsArrayBuffer(file)
-    })
-  }
-
-  const extractTextFromTXT = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      
-      reader.onload = (e) => {
-        const text = e.target?.result as string
-        if (text && text.length >= 50) {
-          resolve(text)
-        } else {
-          reject(new Error('Text file is too short or empty'))
-        }
-      }
-      
-      reader.onerror = () => reject(new Error('Failed to read text file'))
-      reader.readAsText(file)
-    })
-  }
-
   const handleFileUpload = async (file: File) => {
     if (!file) return
 
@@ -180,7 +91,7 @@ export default function AnalyzeMyResumePage() {
     const isTXT = file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')
     
     if (!isPDF && !isTXT) {
-      setError('Please upload a PDF or TXT file. For other formats, please copy your resume as text and save it as a .txt file.')
+      setError('Please upload a PDF or TXT file.')
       return
     }
 
@@ -192,26 +103,6 @@ export default function AnalyzeMyResumePage() {
 
     setSelectedFile(file)
     setError('')
-    setIsExtracting(true)
-
-    try {
-      let text = ''
-      
-      if (isPDF) {
-        text = await extractTextFromPDF(file)
-      } else if (isTXT) {
-        text = await extractTextFromTXT(file)
-      }
-      
-      setResumeText(text)
-      setError('')
-    } catch (err: any) {
-      setError(err.message || 'Failed to extract text from file')
-      setResumeText('')
-      setSelectedFile(null)
-    } finally {
-      setIsExtracting(false)
-    }
   }
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,7 +174,6 @@ export default function AnalyzeMyResumePage() {
   const resetAnalysis = () => {
     setAnalysisResult(null)
     setSelectedFile(null)
-    setResumeText('')
     setError('')
     setActiveTab('overview')
   }
@@ -338,27 +228,31 @@ export default function AnalyzeMyResumePage() {
     return 'text-red-400'
   }
 
-  if (authLoading || !contextUser) {
-    return null
+  if (authLoading) {
+    return <AuthLoadingScreen message="Loading resume analyzer..." />
+  }
+
+  if (!contextUser) {
+    return <AuthLoadingScreen message="Redirecting to home..." />
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <FileText className="w-12 h-12 text-cyan-400" />
-              <h2 className="text-4xl lg:text-5xl font-bold text-white">
+          <div className="text-center mb-8 sm:mb-12">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <FileText className="w-8 h-8 sm:w-12 sm:h-12 text-cyan-400 shrink-0" />
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-white">
                 AI Resume Analyzer
               </h2>
             </div>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-              Get comprehensive AI-powered insights to optimize your resume for ATS systems, 
+            <p className="text-base sm:text-xl text-slate-300 max-w-2xl mx-auto px-1">
+              Get AI-powered insights to optimize your resume for ATS systems,
               career growth, and interview success
             </p>
             
@@ -409,47 +303,45 @@ export default function AnalyzeMyResumePage() {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`bg-slate-800/50 backdrop-blur-lg rounded-xl p-12 border-2 border-dashed transition-all ${
+                className={`bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 sm:p-10 md:p-12 border-2 border-dashed transition-all ${
                   isDragging
                     ? 'border-cyan-400 bg-cyan-500/10'
                     : 'border-white/20 hover:border-cyan-400/50'
                 }`}
               >
                 <div className="text-center">
-                  <Upload className="w-16 h-16 text-cyan-400 mx-auto mb-6" />
+                  <Upload className="w-12 h-12 sm:w-16 sm:h-16 text-cyan-400 mx-auto mb-5 sm:mb-6" />
                   
                   {selectedFile ? (
                     <div className="mb-6">
-                      <div className="inline-flex items-center gap-3 px-6 py-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-                        <FileText className="w-5 h-5 text-blue-400" />
-                        <span className="text-blue-300 font-medium">{selectedFile.name}</span>
+                      <div className="inline-flex items-center gap-3 px-4 sm:px-6 py-3 bg-blue-500/20 border border-blue-500/30 rounded-lg max-w-full">
+                        <FileText className="w-5 h-5 text-blue-400 shrink-0" />
+                        <span className="text-blue-300 font-medium truncate">{selectedFile.name}</span>
                         <button
-                          onClick={() => {
-                            setSelectedFile(null)
-                            setResumeText('')
-                          }}
-                          className="text-blue-400 hover:text-blue-300"
+                          onClick={() => setSelectedFile(null)}
+                          className="text-blue-400 hover:text-blue-300 shrink-0"
+                          aria-label="Remove file"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                       <p className="text-sm text-slate-400 mt-2">
-                        {(selectedFile.size / 1024).toFixed(2)} KB • {resumeText.length} characters extracted
+                        {(selectedFile.size / 1024).toFixed(2)} KB
                       </p>
                     </div>
                   ) : (
                     <>
-                      <h3 className="text-2xl font-semibold text-white mb-3">
+                      <h3 className="text-xl sm:text-2xl font-semibold text-white mb-3">
                         Upload Your Resume
                       </h3>
-                      <p className="text-slate-400 mb-6">
+                      <p className="text-slate-400 mb-6 text-sm sm:text-base">
                         Drag and drop your resume or click to browse
                       </p>
                     </>
                   )}
 
                   <div className="space-y-4">
-                    <label className="cursor-pointer inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-700 rounded-lg font-semibold hover:bg-gray-50 transition-all shadow-lg">
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-blue-700 rounded-xl font-semibold hover:bg-slate-50 transition-all shadow-lg text-sm sm:text-base">
                       <Upload className="w-5 h-5" />
                       {selectedFile ? 'Change File' : 'Choose File'}
                       <input
@@ -460,12 +352,12 @@ export default function AnalyzeMyResumePage() {
                       />
                     </label>
 
-                    {selectedFile && resumeText && (
+                    {selectedFile && (
                       <div>
                         <button
                           onClick={handleAnalyze}
                           disabled={isAnalyzing}
-                          className="w-full max-w-md mx-auto px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                          className="w-full max-w-md mx-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-blue-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                         >
                           {isAnalyzing ? (
                             <>
@@ -486,42 +378,34 @@ export default function AnalyzeMyResumePage() {
                   <p className="text-sm text-slate-500 mt-6">
                     Supported formats: PDF, TXT (Max 5MB)
                   </p>
-
-                  {isExtracting && (
-                    <div className="mt-6 flex items-center justify-center gap-2 text-cyan-400">
-                      <Sparkles className="w-5 h-5 animate-spin" />
-                      <span>Extracting text from file...</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* What We Analyze */}
-              <div className="mt-12 grid md:grid-cols-2 gap-6">
-                <div className="bg-slate-800/30 backdrop-blur-lg rounded-xl p-6 border border-white/10">
-                  <FileCheck className="w-8 h-8 text-cyan-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">ATS Optimization</h3>
+              <div className="mt-10 sm:mt-12 grid sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="bg-slate-800/30 backdrop-blur-lg rounded-xl p-5 sm:p-6 border border-white/10">
+                  <FileCheck className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-400 mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold text-white mb-2">ATS Optimization</h3>
                   <p className="text-sm text-slate-400">
                     Ensure your resume passes Applicant Tracking Systems with keyword optimization and formatting analysis
                   </p>
                 </div>
-                <div className="bg-slate-800/30 backdrop-blur-lg rounded-xl p-6 border border-white/10">
-                  <BarChart3 className="w-8 h-8 text-purple-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Skill Gap Analysis</h3>
+                <div className="bg-slate-800/30 backdrop-blur-lg rounded-xl p-5 sm:p-6 border border-white/10">
+                  <BarChart3 className="w-7 h-7 sm:w-8 sm:h-8 text-sky-400 mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Skill Gap Analysis</h3>
                   <p className="text-sm text-slate-400">
                     Identify missing skills and get personalized recommendations for career advancement
                   </p>
                 </div>
-                <div className="bg-slate-800/30 backdrop-blur-lg rounded-xl p-6 border border-white/10">
-                  <IndianRupee className="w-8 h-8 text-green-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Salary Insights</h3>
+                <div className="bg-slate-800/30 backdrop-blur-lg rounded-xl p-5 sm:p-6 border border-white/10">
+                  <IndianRupee className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-400 mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Salary Insights</h3>
                   <p className="text-sm text-slate-400">
                     Get estimated salary ranges based on your skills, experience, and market data
                   </p>
                 </div>
-                <div className="bg-slate-800/30 backdrop-blur-lg rounded-xl p-6 border border-white/10">
-                  <Mail className="w-8 h-8 text-orange-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Cover Letter Generation</h3>
+                <div className="bg-slate-800/30 backdrop-blur-lg rounded-xl p-5 sm:p-6 border border-white/10">
+                  <Mail className="w-7 h-7 sm:w-8 sm:h-8 text-orange-400 mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Cover Letter Generation</h3>
                   <p className="text-sm text-slate-400">
                     AI-generated cover letters tailored to your experience and target roles
                   </p>
@@ -1072,18 +956,18 @@ export default function AnalyzeMyResumePage() {
                       </div>
 
                       {analysisResult.coverLetter ? (
-                        <div className="bg-slate-800/30 border border-white/10 rounded-xl p-8">
+                        <div className="bg-slate-800/30 border border-white/10 rounded-xl p-5 sm:p-8">
                           <div className="prose prose-invert max-w-none">
-                            <div className="text-slate-200 whitespace-pre-wrap leading-relaxed">
+                            <div className="text-slate-200 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
                               {analysisResult.coverLetter}
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center py-12 bg-slate-800/30 border border-white/10 rounded-xl">
+                        <div className="text-center py-12 bg-slate-800/30 border border-white/10 rounded-xl px-4">
                           <Mail className="w-16 h-16 text-slate-600 mx-auto mb-4" />
                           <p className="text-slate-400">
-                            Cover letter generation coming soon...
+                            No cover letter was generated for this analysis. Try analyzing again.
                           </p>
                         </div>
                       )}
@@ -1092,18 +976,17 @@ export default function AnalyzeMyResumePage() {
                 </AnimatePresence>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-center">
                 <button
                   onClick={resetAnalysis}
-                  className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-all flex items-center gap-2"
+                  className="px-6 sm:px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
                 >
                   <RefreshCw className="w-5 h-5" />
                   Analyze Another Resume
                 </button>
                 <button
                   onClick={downloadReport}
-                  className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+                  className="px-6 sm:px-8 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
                 >
                   <Download className="w-5 h-5" />
                   Download Report

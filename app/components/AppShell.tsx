@@ -10,7 +10,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <ToastProvider>
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen">
           <Navbar />
           <AuthModal />
           {children}

@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Code2, Upload, Sparkles, CheckCircle, AlertCircle, Info, FileCode, Zap, X,
   Download, Shield, TrendingUp, RefreshCw, Bug, Lock, Gauge, FileText,
-  BookOpen, AlertTriangle, Check, Copy, Eye
+  BookOpen, AlertTriangle, Check, Eye
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { AuthLoadingScreen } from '../components/AuthLoadingScreen'
 
 // Types for better type safety
 interface CodeIssue {
@@ -56,7 +57,6 @@ export default function ReviewMyCodePage() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'overview' | 'issues' | 'security' | 'performance'>('overview')
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'high' | 'medium' | 'low'>('all')
-  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (authLoading) return
@@ -220,16 +220,6 @@ export default function ReviewMyCodePage() {
     URL.revokeObjectURL(url)
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy:', err)
-    }
-  }
-
   const getFilteredIssues = () => {
     if (!analysisResult) return []
     if (filterSeverity === 'all') return analysisResult.issues
@@ -248,27 +238,30 @@ export default function ReviewMyCodePage() {
     return 'text-red-400'
   }
 
-  if (authLoading || !contextUser) {
-    return null
+  if (authLoading) {
+    return <AuthLoadingScreen message="Loading code reviewer..." />
+  }
+
+  if (!contextUser) {
+    return <AuthLoadingScreen message="Redirecting to home..." />
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Code2 className="w-12 h-12 text-cyan-400" />
-              <h2 className="text-4xl lg:text-5xl font-bold text-white">
+          <div className="text-center mb-8 sm:mb-12">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <Code2 className="w-8 h-8 sm:w-12 sm:h-12 text-cyan-400 shrink-0" />
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-white">
                 AI Code Reviewer
               </h2>
             </div>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+            <p className="text-base sm:text-xl text-slate-300 max-w-2xl mx-auto px-1">
               Upload your code for AI-powered analysis with bug detection, security scanning, and performance optimization
             </p>
             
@@ -309,16 +302,15 @@ export default function ReviewMyCodePage() {
             </motion.div>
           )}
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Code Input Section */}
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
             <div className="space-y-6">
-              <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-white/10">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                    <FileCode className="w-5 h-5 text-cyan-400" />
+              <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-4 sm:p-6 border border-white/10">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2 min-w-0">
+                    <FileCode className="w-5 h-5 text-cyan-400 shrink-0" />
                     Your Code
                   </h3>
-                  <label className="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-all">
+                  <label className="cursor-pointer shrink-0 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-all text-sm">
                       <Upload className="w-4 h-4" />
                       Upload
                       <input
@@ -354,14 +346,14 @@ export default function ReviewMyCodePage() {
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="Paste your code here or upload a file..."
-                  className="w-full h-96 bg-slate-900 text-white p-4 rounded-lg border border-white/10 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 font-mono text-sm resize-none"
+                  className="w-full h-64 sm:h-80 lg:h-96 bg-slate-900 text-white p-3 sm:p-4 rounded-lg border border-white/10 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 font-mono text-xs sm:text-sm resize-y min-h-[16rem]"
                 />
 
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={handleAnalyze}
                     disabled={!code || isAnalyzing}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 sm:px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg font-semibold hover:shadow-xl hover:shadow-blue-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     {isAnalyzing ? (
                       <>
@@ -390,10 +382,9 @@ export default function ReviewMyCodePage() {
                   )}
                 </div>
 
-                {/* Code Stats */}
                 {code && (
                   <div className="mt-4 p-3 bg-slate-900/50 rounded-lg border border-white/10">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
                       <span>Lines: {code.split('\n').length}</span>
                       <span>Characters: {code.length}</span>
                       <span>Words: {code.split(/\s+/).filter(Boolean).length}</span>
@@ -403,61 +394,59 @@ export default function ReviewMyCodePage() {
               </div>
             </div>
 
-            {/* Analysis Results Section */}
             <div className="space-y-6">
               {analysisResult ? (
                 <>
-                  {/* Tabs */}
                   <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl border border-white/10 overflow-hidden">
-                    <div className="flex border-b border-white/10">
+                    <div className="flex border-b border-white/10 overflow-x-auto scrollbar-thin">
                       <button
                         onClick={() => setActiveTab('overview')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium transition-all ${
+                        className={`flex-1 min-w-[7rem] px-3 sm:px-4 py-3 text-sm font-medium transition-all whitespace-nowrap ${
                           activeTab === 'overview'
                             ? 'bg-cyan-500/20 text-cyan-300 border-b-2 border-cyan-400'
                             : 'text-slate-400 hover:text-white'
                         }`}
                       >
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                           <Gauge className="w-4 h-4" />
                           Overview
                         </div>
                       </button>
                       <button
                         onClick={() => setActiveTab('issues')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium transition-all ${
+                        className={`flex-1 min-w-[7rem] px-3 sm:px-4 py-3 text-sm font-medium transition-all whitespace-nowrap ${
                           activeTab === 'issues'
                             ? 'bg-cyan-500/20 text-cyan-300 border-b-2 border-cyan-400'
                             : 'text-slate-400 hover:text-white'
                         }`}
                       >
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                           <Bug className="w-4 h-4" />
                           Issues ({analysisResult.issues.length})
                         </div>
                       </button>
                       <button
                         onClick={() => setActiveTab('security')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium transition-all ${
+                        className={`flex-1 min-w-[7rem] px-3 sm:px-4 py-3 text-sm font-medium transition-all whitespace-nowrap ${
                           activeTab === 'security'
                             ? 'bg-cyan-500/20 text-cyan-300 border-b-2 border-cyan-400'
                             : 'text-slate-400 hover:text-white'
                         }`}
                       >
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                           <Shield className="w-4 h-4" />
                           Security
                         </div>
                       </button>
                       <button
                         onClick={() => setActiveTab('performance')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium transition-all ${
+                        className={`flex-1 min-w-[7.5rem] px-3 sm:px-4 py-3 text-sm font-medium transition-all whitespace-nowrap ${
                           activeTab === 'performance'
                             ? 'bg-cyan-500/20 text-cyan-300 border-b-2 border-cyan-400'
                             : 'text-slate-400 hover:text-white'
                         }`}
                       >
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                           <TrendingUp className="w-4 h-4" />
                           Performance
                         </div>
@@ -502,9 +491,9 @@ export default function ReviewMyCodePage() {
                                 </button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-6">
-                              <div className="relative w-32 h-32">
-                                <svg className="w-32 h-32 transform -rotate-90">
+                            <div className="flex flex-col sm:flex-row items-center gap-6">
+                              <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0">
+                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 128 128">
                                   <circle
                                     cx="64"
                                     cy="64"
@@ -531,12 +520,12 @@ export default function ReviewMyCodePage() {
                                   </defs>
                                 </svg>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className={`text-4xl font-bold ${getScoreTextColor(analysisResult.score)}`}>
+                                  <span className={`text-3xl sm:text-4xl font-bold ${getScoreTextColor(analysisResult.score)}`}>
                                     {analysisResult.score}
                                   </span>
                                 </div>
                               </div>
-                              <div className="flex-1">
+                              <div className="flex-1 w-full">
                                 <div className="space-y-3">
                                   {Object.entries(analysisResult.codeQuality).map(([key, value]: [string, any]) => (
                                     <div key={key}>
@@ -621,10 +610,9 @@ export default function ReviewMyCodePage() {
                           exit={{ opacity: 0, y: -10 }}
                           className="p-6"
                         >
-                          {/* Filter */}
-                          <div className="flex items-center gap-2 mb-4">
+                          <div className="flex flex-wrap items-center gap-2 mb-4">
                             <span className="text-sm text-slate-400">Filter:</span>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               {['all', 'high', 'medium', 'low'].map((severity) => (
                                 <button
                                   key={severity}
@@ -956,10 +944,10 @@ export default function ReviewMyCodePage() {
                   )}
                 </>
               ) : (
-                <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-12 border border-white/10 h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <Code2 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-400 text-lg mb-2">Ready to review your code</p>
+                <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-8 sm:p-12 border border-white/10 min-h-[16rem] lg:h-full flex items-center justify-center">
+                  <div className="text-center px-2">
+                    <Code2 className="w-12 h-12 sm:w-16 sm:h-16 text-slate-600 mx-auto mb-4" />
+                    <p className="text-slate-400 text-base sm:text-lg mb-2">Ready to review your code</p>
                     <p className="text-slate-500 text-sm">
                       Upload a file or paste code to get started with AI-powered analysis
                     </p>

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { AuthLoadingScreen } from '../components/AuthLoadingScreen'
 
 interface ProfileUser {
   id: string
@@ -167,19 +168,16 @@ export default function ProfilePage() {
     return formatDate(iso)
   }
 
+  if (authLoading) {
+    return <AuthLoadingScreen message="Loading profile..." />
+  }
+
   if (!contextUser) {
-    return null
+    return <AuthLoadingScreen message="Redirecting to home..." />
   }
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500">Loading profile...</p>
-        </div>
-      </div>
-    )
+    return <AuthLoadingScreen message="Loading profile..." />
   }
 
   if (!profile) return null

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "./components/AppShell";
 
@@ -13,9 +13,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const dmSerif = DM_Serif_Display({
+  variable: "--font-display",
+  weight: "400",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "CodeHire AI",
-  description: "AI-powered code reviews and resume optimization for developers",
+  title: "CodeHire AI — Smarter Code Reviews. Better Careers.",
+  description:
+    "AI-powered code reviews and resume optimization for developers. Detect bugs, improve ATS scores, and grow your career.",
 };
 
 export default function RootLayout({
@@ -26,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${dmSerif.variable} antialiased font-sans`}
       >
         <AppShell>{children}</AppShell>
       </body>
